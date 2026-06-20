@@ -65,6 +65,19 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+router.get('/api/staff-shifts/:userId', requireStaff, async (req, res, next) => {
+  try {
+    const db = await dbPromise;
+    const userId = Number(req.params.userId);
+    const user = db.prepare('SELECT * FROM users WHERE id = ? AND role = ?').get(userId, 'staff');
+    if (!user) return res.status(404).json({ error: '员工不存在' });
+    const shifts = getUserAvailableShifts(db, userId);
+    res.json({ shifts });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/new', requireStaff, async (req, res, next) => {
   try {
     const db = await dbPromise;

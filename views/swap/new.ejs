@@ -54,31 +54,70 @@
 </div>
 
 <script>
-document.getElementById('successor_id').addEventListener('change', function() {
-  const sid = this.value;
+(function() {
+  const successorSel = document.getElementById('successor_id');
   const newShiftSel = document.getElementById('new_shift_id');
-  const origSel = document.querySelector('select[name="original_shift_id"]');
-  newShiftSel.innerHTML = '<option value="">加载中...</option>';
+  const originalSel = document.querySelector('select[name="original_shift_id"]');
 
-  if (!sid) {
-    newShiftSel.innerHTML = '<option value="">先选择接班人</option>';
-    return;
+  function renderEmpty(msg) {
+    newShiftSel.innerHTML = '<option value="">' + msg + '</option>';
   }
 
-  fetch('/shifts')
-    .then(() => {
-      const allShifts = <%- JSON.stringify([]) %>;
-      return fetch('/api/staff-shifts/' + sid)
-        .catch(() => {
-          const xhr = new XMLHttpRequest();
-          xhr.open('GET', '/shifts', false);
-          return null;
-        });
-    });
+  function renderShifts(shifts, selectedValue) {
+    let html = '<option value="">不交换（仅转出我的班次）</option>';
+    if (shifts && shifts.length > 0) {
+      shifts.forEach(function(s) {
+        const selected = String(selectedValue) === String(s.id) ? ' selected' : '';
+        html += '<option value="' + s.id + '"' + selected + '>'
+          + s.shift_date + ' ' + s.start_time + ' - ' + s.end_time
+          + '</option>';
+      });
+    } else {
+      html += '<option value="" disabled>（该员工暂无可用班次）</option>';
+    }
+    newShiftSel.innerHTML = html;
+  }
 
-  newShiftSel.innerHTML = '<option value="">不交换（仅转出我的班次）</option>' +
-    '<option value="">（请先提交查看冲突校验）</option>';
-});
+  successorSel.addEventListener('change', function() {
+    const sid = this.value;
+    if (!sid) {
+      renderEmpty('先选择接班人');
+      return;
+    }
+    renderEmpty('加载中...');
+    fetch('/swap/api/staff-shifts/' + sid, { credentials: 'same-origin' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data && Array.isArray(data.shifts)) {
+          renderShifts(data.shifts);
+        } else {
+          renderEmpty('加载失败，请重试');
+        }
+      })
+      .catch(function() {
+        renderEmpty('加载失败，请重试');
+      });
+  });
+
+  <% if (formData && formData.successor_id && formData.new_shift_id) { %>
+    (function preload() {
+      const sid = '<%= formData.successor_id %>';
+      const nid = '<%= formData.new_shift_id %>';
+      if (!sid) return;
+      renderEmpty('加载中...');
+      fetch('/swap/api/staff-shifts/' + sid, { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data && Array.isArray(data.shifts)) {
+            renderShifts(data.shifts, nid);
+          } else {
+            renderShifts([], nid);
+          }
+        })
+        .catch(function() { renderShifts([], nid); });
+    })();
+  <% } %>
+})();
 </script>
 
 <%- include('../partials/footer') %>

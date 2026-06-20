@@ -33,7 +33,7 @@ router.get('/', async (req, res, next) => {
         sr.status as swap_status, sr.id as swap_id
       FROM shifts s
       JOIN users u ON s.user_id = u.id
-      LEFT JOIN swap_requests sr ON sr.original_shift_id = s.id
+      LEFT JOIN swap_requests sr ON (sr.original_shift_id = s.id OR sr.new_shift_id = s.id)
         AND sr.status IN ('pending_confirm', 'pending_approve', 'approved')
       WHERE s.shift_date IN (?, ?, ?, ?, ?, ?, ?)
       ORDER BY s.shift_date ASC, s.start_time ASC
@@ -45,13 +45,17 @@ router.get('/', async (req, res, next) => {
         su.name as successor_name,
         os.shift_date as original_date,
         os.start_time as original_start,
-        os.end_time as original_end
+        os.end_time as original_end,
+        ns.shift_date as new_date,
+        ns.start_time as new_start,
+        ns.end_time as new_end
       FROM swap_requests sr
       JOIN users ru ON sr.requester_id = ru.id
       JOIN users su ON sr.successor_id = su.id
       JOIN shifts os ON sr.original_shift_id = os.id
-      WHERE sr.status = 'approved' AND os.shift_date IN (?, ?, ?, ?, ?, ?, ?)
-    `).all(...dates);
+      LEFT JOIN shifts ns ON sr.new_shift_id = ns.id
+      WHERE sr.status = 'approved' AND (os.shift_date IN (?, ?, ?, ?, ?, ?, ?) OR ns.shift_date IN (?, ?, ?, ?, ?, ?, ?))
+    `).all(...dates, ...dates);
 
     const shiftMap = {};
     for (const d of dates) shiftMap[d] = {};

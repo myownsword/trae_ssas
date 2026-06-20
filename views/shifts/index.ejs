@@ -57,11 +57,21 @@
           <h4>调整前</h4>
           <div><strong><%= swap.requester_name %></strong></div>
           <div><%= swap.original_date %> <%= swap.original_start %> - <%= swap.original_end %></div>
+          <% if (swap.new_shift_id) { %>
+            <hr style="margin:8px 0;border:none;border-top:1px solid #ddd;">
+            <div><strong><%= swap.successor_name %></strong></div>
+            <div><%= swap.new_date %> <%= swap.new_start %> - <%= swap.new_end %></div>
+          <% } %>
         </div>
         <div class="diff-col new">
           <h4>调整后</h4>
           <div><strong><%= swap.successor_name %></strong></div>
           <div><%= swap.original_date %> <%= swap.original_start %> - <%= swap.original_end %></div>
+          <% if (swap.new_shift_id) { %>
+            <hr style="margin:8px 0;border:none;border-top:1px solid #ddd;">
+            <div><strong><%= swap.requester_name %></strong></div>
+            <div><%= swap.new_date %> <%= swap.new_start %> - <%= swap.new_end %></div>
+          <% } %>
         </div>
       </div>
     <% }) %>
