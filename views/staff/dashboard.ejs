@@ -1,0 +1,70 @@
+<%- include('../partials/header', { path: '/' }) %>
+
+<h2 style="margin-bottom:20px;">👋 欢迎，<%= currentUser.name %></h2>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+    <h2 class="mb-0">📝 需要我确认的换班</h2>
+    <a href="/swap/new" class="btn btn-primary btn-sm">+ 发起换班申请</a>
+  </div>
+  <% if (assignedRequests.length === 0) { %>
+    <div class="empty-state">暂无待您确认的换班申请</div>
+  <% } else { %>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>申请人</th>
+          <th>原班次</th>
+          <th>申请原因</th>
+          <th>提交时间</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% assignedRequests.forEach(function(r) { %>
+          <tr>
+            <td><%= r.requester_name %></td>
+            <td><%= r.original_date %> <%= r.original_start %>-<%= r.original_end %></td>
+            <td><%= r.reason %></td>
+            <td><%= r.created_at %></td>
+            <td>
+              <a href="/swap/<%= r.id %>" class="link">处理</a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<div class="card">
+  <h2>📋 我发起的换班申请</h2>
+  <% if (myRequests.length === 0) { %>
+    <div class="empty-state">暂无换班申请</div>
+  <% } else { %>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>接班人</th>
+          <th>原班次</th>
+          <th>状态</th>
+          <th>更新时间</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% myRequests.forEach(function(r) { %>
+          <tr>
+            <td><%= r.successor_name %></td>
+            <td><%= r.original_date %> <%= r.original_start %>-<%= r.original_end %></td>
+            <td><span class="badge badge-<%= r.status %>"><%= statusLabels[r.status] %></span></td>
+            <td><%= r.updated_at %></td>
+            <td><a href="/swap/<%= r.id %>" class="link">详情</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

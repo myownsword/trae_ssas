@@ -1,0 +1,83 @@
+<%- include('../partials/header', { path: '/' }) %>
+
+<h2 style="margin-bottom:20px;">👋 欢迎，<%= currentUser.name %>（店长）</h2>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="num"><%= pendingCount %></div>
+    <div class="label">待审批申请</div>
+  </div>
+  <div class="stat-card">
+    <div class="num"><%= pendingConfirmCount %></div>
+    <div class="label">待接班人确认</div>
+  </div>
+  <div class="stat-card warn">
+    <div class="num"><%= riskShifts.length %></div>
+    <div class="label">风险班次（本周）</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>⚠️ 本周风险班次（<%= weekStart %> ~ <%= weekEnd %>）</h2>
+  <% if (riskShifts.length === 0) { %>
+    <div class="empty-state">暂无风险班次</div>
+  <% } else { %>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>日期</th>
+          <th>员工</th>
+          <th>班次</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% riskShifts.forEach(function(shift) { %>
+          <tr>
+            <td><%= shift.shift_date %></td>
+            <td><%= shift.user_name %></td>
+            <td><%= shift.start_time %> - <%= shift.end_time %></td>
+            <td class="text-muted">该时段在岗人数较少，需关注</td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+    <h2 class="mb-0">📋 最近换班申请</h2>
+    <a href="/swap" class="btn btn-secondary btn-sm">查看全部</a>
+  </div>
+  <% if (recentRequests.length === 0) { %>
+    <div class="empty-state">暂无换班申请</div>
+  <% } else { %>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>申请人</th>
+          <th>接班人</th>
+          <th>原班次</th>
+          <th>状态</th>
+          <th>更新时间</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% recentRequests.forEach(function(r) { %>
+          <tr>
+            <td><%= r.requester_name %></td>
+            <td><%= r.successor_name %></td>
+            <td><%= r.original_date %> <%= r.original_start %>-<%= r.original_end %></td>
+            <td><span class="badge badge-<%= r.status %>"><%= statusLabels[r.status] %></span></td>
+            <td><%= r.updated_at %></td>
+            <td><a href="/swap/<%= r.id %>" class="link">详情</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

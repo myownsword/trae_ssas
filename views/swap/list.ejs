@@ -1,0 +1,54 @@
+<%- include('../partials/header', { path: '/swap', title: '换班申请列表' }) %>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+    <h2 class="mb-0">📋 换班申请列表</h2>
+    <% if (currentUser.role === 'staff') { %>
+      <a href="/swap/new" class="btn btn-primary btn-sm">+ 发起换班</a>
+    <% } %>
+  </div>
+
+  <div class="filter-tabs">
+    <a href="/swap" class="<%= filter === 'all' ? 'active' : '' %>">全部</a>
+    <a href="/swap?filter=pending_confirm" class="<%= filter === 'pending_confirm' ? 'active' : '' %>">待确认</a>
+    <a href="/swap?filter=pending_approve" class="<%= filter === 'pending_approve' ? 'active' : '' %>">待审批</a>
+    <a href="/swap?filter=approved" class="<%= filter === 'approved' ? 'active' : '' %>">已通过</a>
+    <a href="/swap?filter=rejected" class="<%= filter === 'rejected' ? 'active' : '' %>">已驳回</a>
+    <a href="/swap?filter=withdrawn" class="<%= filter === 'withdrawn' ? 'active' : '' %>">已撤回</a>
+  </div>
+
+  <% if (requests.length === 0) { %>
+    <div class="empty-state">暂无换班申请</div>
+  <% } else { %>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>申请人</th>
+          <th>接班人</th>
+          <th>原班次</th>
+          <th>原因</th>
+          <th>状态</th>
+          <th>更新时间</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% requests.forEach(function(r) { %>
+          <tr>
+            <td>#<%= r.id %></td>
+            <td><%= r.requester_name %><%= r.requester_id === currentUserId ? '（我）' : '' %></td>
+            <td><%= r.successor_name %><%= r.successor_id === currentUserId ? '（我）' : '' %></td>
+            <td><%= r.original_date %> <%= r.original_start %>-<%= r.original_end %></td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><%= r.reason %></td>
+            <td><span class="badge badge-<%= r.status %>"><%= statusLabels[r.status] %></span></td>
+            <td><%= r.updated_at %></td>
+            <td><a href="/swap/<%= r.id %>" class="link">查看详情</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - 门店换班审批系统</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="card">
+      <h1>🏪 门店换班审批系统</h1>
+      <% if (error) { %>
+        <div class="flash flash-error"><%= error %></div>
+      <% } %>
+      <form action="/auth/login" method="post">
+        <div class="form-group">
+          <label>用户名</label>
+          <input type="text" name="username" value="<%= username %>" required autofocus>
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" name="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;padding:10px;">登录</button>
+      </form>
+      <div class="text-muted mt-20" style="text-align:center;">
+        测试账号: manager/staff1/staff2/staff3，密码均为 123456
+      </div>
+    </div>
+  </div>
+</body>
+</html>

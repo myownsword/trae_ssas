@@ -1,0 +1,130 @@
+<%- include('../partials/header', { path: '/swap', title: '换班申请详情 #' + request.id }) %>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+    <h2 class="mb-0">📋 换班申请 #<%= request.id %></h2>
+    <span class="badge badge-<%= request.status %>"><%= statusLabels[request.status] %></span>
+  </div>
+
+  <div class="info-row">
+    <div class="label">申请人</div>
+    <div class="value"><%= request.requester_name %></div>
+  </div>
+  <div class="info-row">
+    <div class="label">接班人</div>
+    <div class="value"><%= request.successor_name %></div>
+  </div>
+  <div class="info-row">
+    <div class="label">申请原因</div>
+    <div class="value"><%= request.reason %></div>
+  </div>
+  <div class="info-row">
+    <div class="label">提交时间</div>
+    <div class="value"><%= request.created_at %></div>
+  </div>
+  <% if (request.reject_reason) { %>
+    <div class="info-row">
+      <div class="label text-danger">驳回/拒绝原因</div>
+      <div class="value text-danger"><%= request.reject_reason %></div>
+    </div>
+  <% } %>
+</div>
+
+<div class="card">
+  <h2>🔄 班次调整对比</h2>
+  <div class="diff-box">
+    <div class="diff-col old">
+      <h4>调整前（原始）</h4>
+      <div><strong><%= request.requester_name %></strong> 的班次</div>
+      <div>📅 <%= request.original_date %></div>
+      <div>🕐 <%= request.original_start %> - <%= request.original_end %></div>
+    </div>
+    <div class="diff-col new">
+      <h4>调整后（目标）</h4>
+      <div><strong><%= request.successor_name %></strong> 接班</div>
+      <div>📅 <%= request.original_date %></div>
+      <div>🕐 <%= request.original_start %> - <%= request.original_end %></div>
+      <% if (request.new_shift_id) { %>
+        <hr style="margin:8px 0;border:none;border-top:1px solid #ddd;">
+        <div>同时 <strong><%= request.requester_name %></strong> 接 <%= request.successor_name %> 的班次：</div>
+        <div>📅 <%= request.new_date %></div>
+        <div>🕐 <%= request.new_start %> - <%= request.new_end %></div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<% if (request.status === 'pending_confirm' && isSuccessor) { %>
+  <div class="card">
+    <h2>✅ 待您确认</h2>
+    <div class="btn-row">
+      <form action="/swap/<%= request.id %>/successor-confirm" method="post">
+        <input type="hidden" name="comment" value="确认接班">
+        <button type="submit" class="btn btn-success" onclick="return confirm('确认要接这个班吗？')">✓ 确认接班</button>
+      </form>
+      <button class="btn btn-danger" onclick="document.getElementById('reject-successor-form').style.display='block'">✗ 拒绝</button>
+    </div>
+    <form id="reject-successor-form" action="/swap/<%= request.id %>/successor-reject" method="post" style="display:none;margin-top:15px;">
+      <div class="form-group">
+        <label>拒绝原因 *</label>
+        <textarea name="comment" rows="2" required placeholder="请填写拒绝原因..."></textarea>
+      </div>
+      <button type="submit" class="btn btn-danger">提交拒绝</button>
+      <button type="button" class="btn btn-secondary" onclick="document.getElementById('reject-successor-form').style.display='none'">取消</button>
+    </form>
+  </div>
+<% } %>
+
+<% if (request.status === 'pending_approve' && isManager) { %>
+  <div class="card">
+    <h2>✅ 待您审批</h2>
+    <div class="btn-row">
+      <form action="/swap/<%= request.id %>/approve" method="post">
+        <input type="hidden" name="comment" value="批准换班">
+        <button type="submit" class="btn btn-success" onclick="return confirm('确认批准该换班申请？班表将同步更新。')">✓ 批准</button>
+      </form>
+      <button class="btn btn-danger" onclick="document.getElementById('reject-manager-form').style.display='block'">✗ 驳回</button>
+    </div>
+    <form id="reject-manager-form" action="/swap/<%= request.id %>/reject" method="post" style="display:none;margin-top:15px;">
+      <div class="form-group">
+        <label>驳回原因 *</label>
+        <textarea name="comment" rows="2" required placeholder="请填写驳回原因..."></textarea>
+      </div>
+      <button type="submit" class="btn btn-danger">提交驳回</button>
+      <button type="button" class="btn btn-secondary" onclick="document.getElementById('reject-manager-form').style.display='none'">取消</button>
+    </form>
+  </div>
+<% } %>
+
+<% if (isRequester && ['pending_confirm', 'pending_approve'].includes(request.status)) { %>
+  <div class="card">
+    <h2>↩️ 撤回申请</h2>
+    <form action="/swap/<%= request.id %>/withdraw" method="post">
+      <button type="submit" class="btn btn-warning" onclick="return confirm('确认撤回该换班申请？')">撤回申请</button>
+    </form>
+  </div>
+<% } %>
+
+<div class="card">
+  <h2>📜 审批时间线</h2>
+  <div class="timeline">
+    <% timeline.forEach(function(item) { %>
+      <div class="timeline-item">
+        <div class="time"><%= item.created_at %></div>
+        <div class="actor">
+          <%= item.actor_name %>
+          <span class="badge badge-staff" style="margin-left:5px;"><%= actionLabels[item.action] %></span>
+        </div>
+        <% if (item.comment) { %>
+          <div class="comment"><%= item.comment %></div>
+        <% } %>
+      </div>
+    <% }) %>
+  </div>
+</div>
+
+<div class="btn-row" style="margin-bottom:20px;">
+  <a href="/swap" class="btn btn-secondary">← 返回列表</a>
+</div>
+
+<%- include('../partials/footer') %>

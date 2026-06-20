@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title : '门店换班审批系统' %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <% if (currentUser) { %>
+  <header class="header">
+    <h1>🏪 门店换班审批系统</h1>
+    <nav>
+      <a href="/" class="<%= typeof path !== 'undefined' && path === '/' ? 'active' : '' %>">首页</a>
+      <a href="/shifts" class="<%= typeof path !== 'undefined' && path.startsWith('/shifts') ? 'active' : '' %>">班表</a>
+      <a href="/swap" class="<%= typeof path !== 'undefined' && path.startsWith('/swap') ? 'active' : '' %>">换班申请</a>
+    </nav>
+    <div class="user-info">
+      <span><%= currentUser.name %></span>
+      <span class="badge <%= currentUser.role === 'manager' ? 'badge-manager' : 'badge-staff' %>">
+        <%= currentUser.role === 'manager' ? '店长' : '员工' %>
+      </span>
+      <form action="/auth/logout" method="post" style="display:inline;">
+        <button type="submit">退出</button>
+      </form>
+    </div>
+  </header>
+  <% } %>
+  <div class="container">
+    <% if (flash) { %>
+      <div class="flash flash-<%= flash.type %>"><%= flash.message %></div>
+    <% } %>

@@ -1,0 +1,7 @@
+node_modules/
+data/*.db
+data/*.db-*
+agent_memory/
+.env
+npm-debug.log*
+*.log

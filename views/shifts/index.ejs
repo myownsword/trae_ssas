@@ -1,0 +1,71 @@
+<%- include('../partials/header', { path: '/shifts', title: '班表' }) %>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+    <h2 class="mb-0">📅 班表（<%= weekStart %> ~ <%= weekEnd %>）</h2>
+    <div>
+      <a href="/shifts?date=<%= prevWeek %>" class="btn btn-secondary btn-sm">← 上一周</a>
+      <a href="/shifts" class="btn btn-secondary btn-sm">本周</a>
+      <a href="/shifts?date=<%= nextWeek %>" class="btn btn-secondary btn-sm">下一周 →</a>
+    </div>
+  </div>
+
+  <div class="shift-grid">
+    <div class="row head">
+      <div class="cell user-cell" style="width:120px;">员工 / 日期</div>
+      <% dates.forEach(function(d) { %>
+        <div class="cell"><%= d %></div>
+      <% }) %>
+    </div>
+    <% users.forEach(function(user) { %>
+      <div class="row">
+        <div class="cell user-cell">
+          <%= user.name %>
+          <span class="badge <%= user.role === 'manager' ? 'badge-manager' : 'badge-staff' %>" style="margin-left:5px;">
+            <%= user.role === 'manager' ? '店长' : '员工' %>
+          </span>
+        </div>
+        <% dates.forEach(function(d) { %>
+          <div class="cell">
+            <% (shiftMap[d] && shiftMap[d][user.id] || []).forEach(function(s) { %>
+              <div>
+                <span class="shift-tag <%= s.swap_status === 'approved' ? 'swapped' : (s.swap_id ? 'swap' : '') %>">
+                  <%= s.start_time %>-<%= s.end_time %>
+                </span>
+                <% if (s.swap_status && s.swap_status !== 'approved') { %>
+                  <span class="badge badge-pending_approve" style="font-size:0.7rem;">换班中</span>
+                <% } %>
+              </div>
+            <% }) %>
+            <% approvedSwaps.forEach(function(swap) { %>
+              <% if (swap.original_date === d) { %>
+                <% if (swap.successor_id === user.id && swap.original_shift_id && true) { %>
+                <% } %>
+              <% } %>
+            <% }) %>
+          </div>
+        <% }) %>
+      </div>
+    <% }) %>
+  </div>
+
+  <% if (approvedSwaps.length > 0) { %>
+    <h3 class="mt-20" style="font-size:1rem;margin-bottom:10px;">✅ 本周已完成的换班（调整前后对比）</h3>
+    <% approvedSwaps.forEach(function(swap) { %>
+      <div class="diff-box" style="margin-bottom:10px;">
+        <div class="diff-col old">
+          <h4>调整前</h4>
+          <div><strong><%= swap.requester_name %></strong></div>
+          <div><%= swap.original_date %> <%= swap.original_start %> - <%= swap.original_end %></div>
+        </div>
+        <div class="diff-col new">
+          <h4>调整后</h4>
+          <div><strong><%= swap.successor_name %></strong></div>
+          <div><%= swap.original_date %> <%= swap.original_start %> - <%= swap.original_end %></div>
+        </div>
+      </div>
+    <% }) %>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

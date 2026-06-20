@@ -1,0 +1,84 @@
+<%- include('../partials/header', { path: '/swap/new', title: '发起换班申请' }) %>
+
+<div class="card">
+  <h2>📝 发起换班申请</h2>
+
+  <% if (error) { %>
+    <div class="flash flash-error"><%= error %></div>
+  <% } %>
+
+  <form action="/swap" method="post">
+    <div class="form-group">
+      <label>我的原班次 *</label>
+      <select name="original_shift_id" required>
+        <option value="">请选择您要换出的班次</option>
+        <% myShifts.forEach(function(s) { %>
+          <option value="<%= s.id %>" <%= formData.original_shift_id == s.id ? 'selected' : '' %>>
+            <%= s.shift_date %> <%= s.start_time %> - <%= s.end_time %>
+          </option>
+        <% }) %>
+      </select>
+      <div class="text-muted mt-10">仅显示您当前的有效班次</div>
+    </div>
+
+    <div class="form-group">
+      <label>接班人 *</label>
+      <select name="successor_id" id="successor_id" required>
+        <option value="">请选择接班人</option>
+        <% staffList.forEach(function(u) { %>
+          <option value="<%= u.id %>" <%= formData.successor_id == u.id ? 'selected' : '' %>>
+            <%= u.name %>
+          </option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>交换给我的班次（可选，仅用于互换班次场景）</label>
+      <select name="new_shift_id" id="new_shift_id">
+        <option value="">不交换（仅转出我的班次）</option>
+      </select>
+      <div class="text-muted mt-10">如需互换班次，先选择接班人后再选择其班次</div>
+    </div>
+
+    <div class="form-group">
+      <label>换班原因 *</label>
+      <textarea name="reason" rows="3" required placeholder="请说明换班原因..."><%= formData.reason || '' %></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button type="submit" class="btn btn-primary">提交申请</button>
+      <a href="/swap" class="btn btn-secondary">取消</a>
+    </div>
+  </form>
+</div>
+
+<script>
+document.getElementById('successor_id').addEventListener('change', function() {
+  const sid = this.value;
+  const newShiftSel = document.getElementById('new_shift_id');
+  const origSel = document.querySelector('select[name="original_shift_id"]');
+  newShiftSel.innerHTML = '<option value="">加载中...</option>';
+
+  if (!sid) {
+    newShiftSel.innerHTML = '<option value="">先选择接班人</option>';
+    return;
+  }
+
+  fetch('/shifts')
+    .then(() => {
+      const allShifts = <%- JSON.stringify([]) %>;
+      return fetch('/api/staff-shifts/' + sid)
+        .catch(() => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('GET', '/shifts', false);
+          return null;
+        });
+    });
+
+  newShiftSel.innerHTML = '<option value="">不交换（仅转出我的班次）</option>' +
+    '<option value="">（请先提交查看冲突校验）</option>';
+});
+</script>
+
+<%- include('../partials/footer') %>
