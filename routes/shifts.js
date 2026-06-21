@@ -29,7 +29,8 @@ router.get('/', async (req, res, next) => {
     const users = db.prepare("SELECT * FROM users ORDER BY role DESC, name ASC").all();
 
     const shifts = db.prepare(`
-      SELECT s.*, u.name as user_name, u.role as user_role,
+      SELECT s.id, s.user_id, s.shift_date, s.start_time, s.end_time, s.status as shift_status, s.swap_request_id,
+        u.name as user_name, u.role as user_role,
         sr.status as swap_status, sr.id as swap_id
       FROM shifts s
       JOIN users u ON s.user_id = u.id

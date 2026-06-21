@@ -85,11 +85,18 @@ router.get('/new', requireStaff, async (req, res, next) => {
     const myShifts = getUserAvailableShifts(db, req.user.id);
     const staffList = getAllStaff(db).filter(s => s.id !== req.user.id);
 
+    const formData = {};
+    const preShiftId = Number(req.query.shift_id || 0);
+    if (preShiftId) {
+      const preShift = myShifts.find(s => s.id === preShiftId);
+      if (preShift) formData.original_shift_id = preShiftId;
+    }
+
     res.render('swap/new', {
       myShifts,
       staffList,
       error: null,
-      formData: {}
+      formData
     });
   } catch (err) {
     next(err);
