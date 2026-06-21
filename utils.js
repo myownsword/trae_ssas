@@ -127,6 +127,96 @@ function formatDate(d) {
   return d.toISOString().split('T')[0];
 }
 
+const notificationTypeLabels = {
+  pending_confirm: '待确认',
+  pending_approve: '待审批',
+  approved: '已批准',
+  rejected: '已驳回',
+  successor_rejected: '接班人拒绝',
+  withdrawn: '已撤回'
+};
+
+function notificationExists(db, userId, swapRequestId, type) {
+  const existing = db.prepare(`
+    SELECT id FROM notifications
+    WHERE user_id = ? AND swap_request_id = ? AND type = ?
+  `).get(userId, swapRequestId, type);
+  return !!existing;
+}
+
+function createNotification(db, userId, swapRequestId, type, content, createdAt) {
+  if (notificationExists(db, userId, swapRequestId, type)) {
+    return null;
+  }
+  const result = db.prepare(`
+    INSERT INTO notifications (user_id, swap_request_id, type, content, is_read, is_invalid, created_at)
+    VALUES (?, ?, ?, ?, 0, 0, ?)
+  `).run(userId, swapRequestId, type, content, createdAt);
+  return result.lastInsertRowid;
+}
+
+function invalidateNotificationsForRequest(db, swapRequestId, excludeTypes = []) {
+  let sql = `
+    UPDATE notifications SET is_invalid = 1
+    WHERE swap_request_id = ? AND is_invalid = 0
+  `;
+  const params = [swapRequestId];
+  if (excludeTypes.length > 0) {
+    const placeholders = excludeTypes.map(() => '?').join(', ');
+    sql += ` AND type NOT IN (${placeholders})`;
+    params.push(...excludeTypes);
+  }
+  db.prepare(sql).run(...params);
+}
+
+function getUserNotifications(db, userId) {
+  return db.prepare(`
+    SELECT n.*,
+      sr.requester_id, sr.successor_id,
+      ru.name as requester_name,
+      su.name as successor_name,
+      os.shift_date as original_date,
+      os.start_time as original_start,
+      os.end_time as original_end
+    FROM notifications n
+    JOIN swap_requests sr ON n.swap_request_id = sr.id
+    JOIN users ru ON sr.requester_id = ru.id
+    JOIN users su ON sr.successor_id = su.id
+    JOIN shifts os ON sr.original_shift_id = os.id
+    WHERE n.user_id = ?
+    ORDER BY n.created_at DESC, n.id DESC
+    LIMIT 100
+  `).all(userId);
+}
+
+function getUnreadNotificationCount(db, userId) {
+  const result = db.prepare(`
+    SELECT COUNT(*) as count FROM notifications
+    WHERE user_id = ? AND is_read = 0 AND is_invalid = 0
+  `).get(userId);
+  return result ? result.count : 0;
+}
+
+function markNotificationRead(db, notificationId, userId) {
+  return db.prepare(`
+    UPDATE notifications SET is_read = 1
+    WHERE id = ? AND user_id = ?
+  `).run(notificationId, userId);
+}
+
+function markAllNotificationsRead(db, userId) {
+  return db.prepare(`
+    UPDATE notifications SET is_read = 1
+    WHERE user_id = ? AND is_read = 0
+  `).run(userId);
+}
+
+function getNotificationById(db, id) {
+  return db.prepare(`
+    SELECT n.* FROM notifications n WHERE n.id = ?
+  `).get(id);
+}
+
 module.exports = {
   timesOverlap,
   checkShiftOverlap,
@@ -138,6 +228,15 @@ module.exports = {
   getTimeline,
   actionLabels,
   statusLabels,
+  notificationTypeLabels,
+  notificationExists,
+  createNotification,
+  invalidateNotificationsForRequest,
+  getUserNotifications,
+  getUnreadNotificationCount,
+  markNotificationRead,
+  markAllNotificationsRead,
+  getNotificationById,
   startOfWeek,
   endOfWeek,
   formatDate

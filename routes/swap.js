@@ -6,7 +6,8 @@ const { requireStaff, requireManager } = require('../middleware/auth');
 const {
   checkShiftOverlap, getUserAvailableShifts, getAllStaff,
   getShiftById, getSwapRequestById, getTimeline,
-  statusLabels, actionLabels
+  statusLabels, actionLabels,
+  createNotification, invalidateNotificationsForRequest
 } = require('../utils');
 
 router.get('/', async (req, res, next) => {
@@ -221,6 +222,12 @@ router.post('/', requireStaff, async (req, res, next) => {
       VALUES (?, ?, 'submit', ?, ?)
     `).run(requestId, req.user.id, reason.trim(), now);
 
+    createNotification(
+      db, successor_id, requestId, 'pending_confirm',
+      `${req.user.name} 申请将 ${originalShift.shift_date} ${originalShift.start_time}-${originalShift.end_time} 的班次与您调换，请确认`,
+      now
+    );
+
     req.session.flash = { type: 'success', message: '换班申请已提交，等待接班人确认' };
     res.redirect(`/swap/${requestId}`);
   } catch (err) {
@@ -315,6 +322,18 @@ router.post('/:id/successor-confirm', async (req, res, next) => {
       VALUES (?, ?, 'successor_confirm', ?, ?)
     `).run(request.id, req.user.id, req.body.comment || '确认接班', now);
 
+    invalidateNotificationsForRequest(db, request.id, ['pending_confirm']);
+
+    const managers = db.prepare("SELECT * FROM users WHERE role = 'manager'").all();
+    const requestDetail = getSwapRequestById(db, request.id);
+    for (const m of managers) {
+      createNotification(
+        db, m.id, request.id, 'pending_approve',
+        `${requestDetail.requester_name} 申请与 ${requestDetail.successor_name} 换班（${requestDetail.original_date} ${requestDetail.original_start}-${requestDetail.original_end}），${req.user.name}已确认，请审批`,
+        now
+      );
+    }
+
     req.session.flash = { type: 'success', message: '已确认接班，等待店长审批' };
     res.redirect(`/swap/${request.id}`);
   } catch (err) {
@@ -350,6 +369,15 @@ router.post('/:id/successor-reject', async (req, res, next) => {
       INSERT INTO approval_timeline (swap_request_id, actor_id, action, comment, created_at)
       VALUES (?, ?, 'successor_reject', ?, ?)
     `).run(request.id, req.user.id, comment, now);
+
+    invalidateNotificationsForRequest(db, request.id);
+
+    const requestDetail = getSwapRequestById(db, request.id);
+    createNotification(
+      db, request.requester_id, request.id, 'successor_rejected',
+      `${req.user.name} 拒绝了您的换班申请（${requestDetail.original_date} ${requestDetail.original_start}-${requestDetail.original_end}），原因：${comment}`,
+      now
+    );
 
     req.session.flash = { type: 'success', message: '已拒绝接班' };
     res.redirect(`/swap/${request.id}`);
@@ -426,6 +454,13 @@ router.post('/:id/approve', requireManager, async (req, res, next) => {
       VALUES (?, ?, 'approve', ?, ?)
     `).run(request.id, req.user.id, req.body.comment || '批准换班', now);
 
+    invalidateNotificationsForRequest(db, request.id);
+
+    const requestDetail = getSwapRequestById(db, request.id);
+    const approveMsg = `店长 ${req.user.name} 已批准 ${requestDetail.requester_name} 与 ${requestDetail.successor_name} 的换班申请（${requestDetail.original_date} ${requestDetail.original_start}-${requestDetail.original_end}）`;
+    createNotification(db, request.requester_id, request.id, 'approved', approveMsg, now);
+    createNotification(db, request.successor_id, request.id, 'approved', approveMsg, now);
+
     req.session.flash = { type: 'success', message: '已批准换班，班表已同步更新' };
     res.redirect(`/swap/${request.id}`);
   } catch (err) {
@@ -461,6 +496,13 @@ router.post('/:id/reject', requireManager, async (req, res, next) => {
       VALUES (?, ?, 'reject', ?, ?)
     `).run(request.id, req.user.id, comment, now);
 
+    invalidateNotificationsForRequest(db, request.id);
+
+    const requestDetail = getSwapRequestById(db, request.id);
+    const rejectMsg = `店长 ${req.user.name} 驳回了 ${requestDetail.requester_name} 与 ${requestDetail.successor_name} 的换班申请（${requestDetail.original_date} ${requestDetail.original_start}-${requestDetail.original_end}），原因：${comment}`;
+    createNotification(db, request.requester_id, request.id, 'rejected', rejectMsg, now);
+    createNotification(db, request.successor_id, request.id, 'rejected', rejectMsg, now);
+
     req.session.flash = { type: 'success', message: '已驳回申请' };
     res.redirect(`/swap/${request.id}`);
   } catch (err) {
@@ -491,6 +533,16 @@ router.post('/:id/withdraw', async (req, res, next) => {
       INSERT INTO approval_timeline (swap_request_id, actor_id, action, comment, created_at)
       VALUES (?, ?, 'withdraw', ?, ?)
     `).run(request.id, req.user.id, req.body.comment || '申请人撤回', now);
+
+    invalidateNotificationsForRequest(db, request.id);
+
+    const requestDetail = getSwapRequestById(db, request.id);
+    const withdrawMsg = `${req.user.name} 已撤回换班申请（${requestDetail.original_date} ${requestDetail.original_start}-${requestDetail.original_end}）`;
+    createNotification(db, request.successor_id, request.id, 'withdrawn', withdrawMsg, now);
+    const managers = db.prepare("SELECT * FROM users WHERE role = 'manager'").all();
+    for (const m of managers) {
+      createNotification(db, m.id, request.id, 'withdrawn', withdrawMsg, now);
+    }
 
     req.session.flash = { type: 'success', message: '已撤回申请' };
     res.redirect(`/swap/${request.id}`);

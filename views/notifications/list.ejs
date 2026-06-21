@@ -1,0 +1,44 @@
+<%- include('../partials/header', { path: '/notifications' }) %>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+  <h2 class="mb-0">🔔 我的通知</h2>
+  <% if (notifications.some(n => !n.is_read)) { %>
+    <form action="/notifications/read-all" method="post" style="display:inline;">
+      <button type="submit" class="btn btn-secondary btn-sm">全部标记已读</button>
+    </form>
+  <% } %>
+</div>
+
+<% if (notifications.length === 0) { %>
+  <div class="card">
+    <div class="empty-state">暂无通知</div>
+  </div>
+<% } else { %>
+  <div class="notification-list">
+    <% notifications.forEach(function(n) { %>
+      <div class="notification-item <%= n.is_read ? 'is-read' : 'is-unread' %> <%= n.is_invalid ? 'is-invalid' : '' %>">
+        <div class="notification-header">
+          <span class="notification-type badge badge-<%= n.type %>">
+            <%= notificationTypeLabels[n.type] %>
+          </span>
+          <% if (n.is_invalid) { %>
+            <span class="badge badge-gray">已失效</span>
+          <% } %>
+          <span class="notification-time"><%= n.created_at %></span>
+        </div>
+        <div class="notification-content">
+          <a href="/swap/<%= n.swap_request_id %>" class="notification-link"><%= n.content %></a>
+        </div>
+        <div class="notification-actions">
+          <% if (!n.is_read) { %>
+            <form action="/notifications/<%= n.id %>/read" method="post" style="display:inline;">
+              <button type="submit" class="btn btn-sm btn-link">标记已读</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

@@ -5,7 +5,8 @@ const path = require('path');
 const dbPromise = require('./db');
 const { requireLogin, requireManager, injectUser } = require('./middleware/auth');
 const {
-  statusLabels, startOfWeek, endOfWeek, formatDate
+  statusLabels, startOfWeek, endOfWeek, formatDate,
+  getUnreadNotificationCount
 } = require('./utils');
 
 const app = express();
@@ -31,9 +32,16 @@ app.use(async (req, res, next) => {
       const db = await dbPromise;
       const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
       req.user = user;
+      if (user) {
+        res.locals.unreadNotificationCount = getUnreadNotificationCount(db, user.id);
+      } else {
+        res.locals.unreadNotificationCount = 0;
+      }
     } catch (err) {
       return next(err);
     }
+  } else {
+    res.locals.unreadNotificationCount = 0;
   }
   next();
 });
@@ -47,6 +55,7 @@ app.get('/login', (req, res) => {
 app.use('/auth', require('./routes/auth'));
 app.use('/shifts', requireLogin, require('./routes/shifts'));
 app.use('/swap', requireLogin, require('./routes/swap'));
+app.use('/notifications', requireLogin, require('./routes/notifications'));
 
 app.get('/', requireLogin, async (req, res, next) => {
   try {

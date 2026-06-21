@@ -151,6 +151,22 @@ async function initDb() {
       FOREIGN KEY (swap_request_id) REFERENCES swap_requests(id),
       FOREIGN KEY (actor_id) REFERENCES users(id)
     );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      swap_request_id INTEGER NOT NULL,
+      type TEXT NOT NULL CHECK (type IN (
+        'pending_confirm', 'pending_approve',
+        'approved', 'rejected', 'successor_rejected', 'withdrawn'
+      )),
+      content TEXT NOT NULL,
+      is_read INTEGER NOT NULL DEFAULT 0,
+      is_invalid INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (swap_request_id) REFERENCES swap_requests(id)
+    );
   `);
 
   saveToDisk();

@@ -14,6 +14,12 @@
       <a href="/" class="<%= typeof path !== 'undefined' && path === '/' ? 'active' : '' %>">首页</a>
       <a href="/shifts" class="<%= typeof path !== 'undefined' && path.startsWith('/shifts') ? 'active' : '' %>">班表</a>
       <a href="/swap" class="<%= typeof path !== 'undefined' && path.startsWith('/swap') ? 'active' : '' %>">换班申请</a>
+      <a href="/notifications" class="<%= typeof path !== 'undefined' && path.startsWith('/notifications') ? 'active' : '' %> notification-link">
+        🔔 通知
+        <% if (unreadNotificationCount && unreadNotificationCount > 0) { %>
+          <span class="notification-badge"><%= unreadNotificationCount > 99 ? '99+' : unreadNotificationCount %></span>
+        <% } %>
+      </a>
     </nav>
     <div class="user-info">
       <span><%= currentUser.name %></span>
